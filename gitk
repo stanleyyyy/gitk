@@ -2935,30 +2935,28 @@ proc makewindow {} {
     makemenu $rowctxmenu {
         {mc "Diff this -> selected" command {diffvssel 0}}
         {mc "Diff selected -> this" command {diffvssel 1}}
-        {mc "Diff this -> marked commit" command {diffvsmark 0}}
-        {mc "Diff marked commit -> this" command {diffvsmark 1}}
-        {mc "Compare with marked commit" command compare_commits}
-        {xx "" separator}
+        {mc "Make patch" command mkpatch}
+        {mc "Create tag" command mktag}
+        {mc "Copy commit reference" command copyreference}
+        {mc "Write commit to file" command writecommit}
+        {mc "Create new branch" command mkbranch}
+        {mc "Cherry-pick this commit" command cherrypick}
+        {mc "Reset HEAD branch to here" command resethead}
         {mc "Mark this commit" command markhere}
         {mc "Return to mark" command gotomark}
         {mc "Find descendant of this and mark" command find_common_desc}
+        {mc "Compare with marked commit" command compare_commits}
+        {mc "Diff this -> marked commit" command {diffvsmark 0}}
+        {mc "Diff marked commit -> this" command {diffvsmark 1}}
+        {mc "Revert this commit" command revert}
         {xx "" separator}
         {mc "Fixup marked commit into this" command {foldmarked fixup}}
         {mc "Squash marked commit into this" command {foldmarked squash}}
-        {mc "Fixup local changes into this" command foldlocal}
         {mc "Move marked commit on top of this" command {movemarked 1}}
         {mc "Move marked commit below this" command {movemarked 0}}
+        {mc "Fixup local changes into this" command foldlocal}
         {xx "" separator}
-        {mc "Make patch" command mkpatch}
         {mc "Format patches..." command formatpatches}
-        {mc "Write commit to file" command writecommit}
-        {mc "Copy commit reference" command copyreference}
-        {xx "" separator}
-        {mc "Create tag" command mktag}
-        {mc "Create new branch" command mkbranch}
-        {mc "Cherry-pick this commit" command cherrypick}
-        {mc "Revert this commit" command revert}
-        {mc "Reset HEAD branch to here" command resethead}
     }
     $rowctxmenu configure -tearoff 0
 
