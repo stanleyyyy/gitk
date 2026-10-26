@@ -2435,7 +2435,7 @@ proc makewindow {} {
     global maincursor textcursor curtextcursor
     global rowctxmenu fakerowmenu mergemax wrapcomment wrapdefault
     global highlight_files gdttype
-    global searchstring sstring
+    global searchstring sstring searchcase
     global bgcolor fgcolor bglist fglist diffcolors diffbgcolors selectbgcolor
     global filesepbgcolor filesepfgcolor
     global mergecolors foundbgcolor currentsearchhitbgcolor
@@ -2657,13 +2657,21 @@ proc makewindow {} {
     # gap between sub-widgets
     set wgap [font measure uifont "i"]
 
-    ttk::button .bleft.top.search -text [mc "Search"] -command dosearch
-    pack .bleft.top.search -side left -padx 5
+    ttk::label .bleft.top.search -text "[mc "Search"] "
+    ttk::button .bleft.top.snext -command dosearch -text \u2193 -width 3
+    ttk::button .bleft.top.sprev -command dosearchback -text \u2191 -width 3
+    pack .bleft.top.search .bleft.top.snext .bleft.top.sprev -side left -fill y
     set sstring .bleft.top.sstring
     set searchstring ""
     ttk::entry $sstring -width 20 -textvariable searchstring
     lappend entries $sstring
     trace add variable searchstring write incrsearch
+    set searchcase 0
+    ttk::checkbutton .bleft.top.scase -text [mc "Case sensitive"] \
+        -variable searchcase -command rehighlight_search_results
+    ttk::label .bleft.top.scount
+    pack .bleft.top.scase -side right -padx 5
+    pack .bleft.top.scount -side right -padx 5
     pack $sstring -side left -expand 1 -fill x
     ttk::radiobutton .bleft.mid.diff -text [mc "Diff"] \
         -command changediffdisp -variable diffelide -value {0 0}
@@ -8327,6 +8335,7 @@ proc getblobline {bf id} {
             mark_ctext_line $lnum
         }
         $ctext config -state disabled
+        searchcount
         return 0
     }
     $ctext config -state disabled
@@ -8689,6 +8698,7 @@ proc getblobdiffline {bdf ids} {
     blobdiffmaybeseehere [eof $bdf]
     if {[eof $bdf]} {
         catch {close $bdf}
+        searchcount
         array unset blobdifffd $ids
         return 0
     }
@@ -9038,6 +9048,7 @@ proc clear_ctext {{first 1.0}} {
     }
     set ctext_file_names {}
     set ctext_file_lines {}
+    searchcount
 }
 
 proc settabs {{firstab {}}} {
@@ -9070,7 +9081,8 @@ proc incrsearch {name ix op} {
         }
     }
     if {$searchstring ne {}} {
-        set here [$ctext search -count mlen $searchdirn -- $searchstring anchor]
+        set here [$ctext search -count mlen {*}[searchnocase] $searchdirn \
+                      -- $searchstring anchor]
         if {$here ne {}} {
             $ctext see $here
             set mend "$here + $mlen c"
@@ -9096,7 +9108,8 @@ proc dosearch {} {
         } elseif {[catch {set start [$ctext index anchor]}]} {
             set start "@0,0"
         }
-        set match [$ctext search -count mlen -- $searchstring $start]
+        set match [$ctext search -count mlen {*}[searchnocase] \
+                       -- $searchstring $start]
         $ctext tag remove sel 1.0 end
         if {$match eq {}} {
             bell
@@ -9125,7 +9138,8 @@ proc dosearchback {} {
         } elseif {[catch {set start [$ctext index anchor]}]} {
             set start @0,[winfo height $ctext]
         }
-        set match [$ctext search -backwards -count ml -- $searchstring $start]
+        set match [$ctext search -backwards -count ml {*}[searchnocase] \
+                       -- $searchstring $start]
         $ctext tag remove sel 1.0 end
         if {$match eq {}} {
             bell
@@ -9150,6 +9164,39 @@ proc rehighlight_search_results {} {
     if {$searchstring ne {}} {
         searchmarkvisible 1
     }
+    searchcount
+}
+
+proc searchnocase {} {
+    global searchcase
+
+    if {$searchcase} return
+    return -nocase
+}
+
+# Show how many matches the diff pane has, and which one is selected
+proc searchcount {} {
+    global ctext searchstring
+
+    if {$searchstring eq {}} {
+        .bleft.top.scount configure -text ""
+        return
+    }
+    set matches [$ctext search -all {*}[searchnocase] -- $searchstring 1.0 end]
+    set n [llength $matches]
+    set sel [$ctext tag ranges sel]
+    set i -1
+    if {$sel ne {}} {
+        set i [lsearch -exact $matches [lindex $sel 0]]
+    }
+    if {$n == 0} {
+        set txt [mc "No matches"]
+    } elseif {$i >= 0} {
+        set txt [mc "%d of %d" [expr {$i + 1}] $n]
+    } else {
+        set txt [mc "%d matches" $n]
+    }
+    .bleft.top.scount configure -text $txt
 }
 
 proc searchmark {first last} {
@@ -9159,7 +9206,8 @@ proc searchmark {first last} {
 
     set mend $first.0
     while {1} {
-        set match [$ctext search -count mlen -- $searchstring $mend $last.end]
+        set match [$ctext search -count mlen {*}[searchnocase] \
+                       -- $searchstring $mend $last.end]
         if {$match eq {}} break
         set mend "$match + $mlen c"
         if {$sel ne {} && [$ctext compare $match == [lindex $sel 0]]} {
