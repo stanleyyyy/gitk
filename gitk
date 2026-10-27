@@ -10306,7 +10306,9 @@ proc writecommit {} {
     grid $top.clab $top.cmd -sticky w -pady 10
     ttk::label $top.flab -text [mc "Output file:"]
     ttk::entry $top.fname -width 60
-    $top.fname insert 0 [file normalize "commit-[string range $rowmenuid 0 6]"]
+    # Name the file after the subject, like "git format-patch" does
+    set subj [string range [exec git log -1 --format=%f $rowmenuid] 0 51]
+    $top.fname insert 0 [file normalize "commit-[string range $rowmenuid 0 6]-$subj.patch"]
     grid $top.flab $top.fname -sticky w
     ttk::frame $top.buts
     ttk::button $top.buts.gen -text [mc "Write"] -command wrcomgo
