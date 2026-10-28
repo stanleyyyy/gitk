@@ -2780,7 +2780,7 @@ proc makewindow {} {
     ttk::button .bright.tools.edit -text [mc "Editor"] \
         -command {curfile_do open_in_editor}
     ttk::button .bright.tools.copy -text [mc "Copy path"] \
-        -command {curfile_do {apply {f {clipboard clear; clipboard append $f}}}}
+        -command {curfile_do copytext}
     ttk::button .bright.tools.copyfull -text [mc "Copy full path"] \
         -command {curfile_do copy_full_path}
     pack .bright.tools.diff .bright.tools.edit .bright.tools.copy \
@@ -2975,7 +2975,7 @@ proc makewindow {} {
         {mc "Check out this branch" command cobranch}
         {mc "Rename this branch" command mvbranch}
         {mc "Remove this branch" command rmbranch}
-        {mc "Copy branch name" command {clipboard clear; clipboard append $headmenuhead}}
+        {mc "Copy branch name" command {copytext $headmenuhead}}
     }
     $headctxmenu configure -tearoff 0
 
@@ -2987,7 +2987,7 @@ proc makewindow {} {
         {mc "External diff" command {external_diff}}
         {mc "Open in editor" command {open_in_editor $flist_menu_file}}
         {mc "Blame parent commit" command {external_blame 1}}
-        {mc "Copy path" command {clipboard clear; clipboard append $flist_menu_file}}
+        {mc "Copy path" command {copytext $flist_menu_file}}
         {mc "Copy full path" command {copy_full_path $flist_menu_file}}
     }
     $flist_menu configure -tearoff 0
@@ -2999,7 +2999,7 @@ proc makewindow {} {
         {mc "Run git gui blame on this line" command {external_blame_diff}}
         {mc "Open in editor at this line" command {open_in_editor $flist_menu_file \
             [diff_new_lineno $diff_menu_filebase $diff_menu_line]}}
-        {mc "Copy path" command {clipboard clear; clipboard append $flist_menu_file}}
+        {mc "Copy path" command {copytext $flist_menu_file}}
         {mc "Copy full path" command {copy_full_path $flist_menu_file}}
     }
     $diff_menu configure -tearoff 0
@@ -4002,8 +4002,7 @@ proc diff_new_lineno {base line} {
 proc copy_full_path {file} {
     global worktree
 
-    clipboard clear
-    clipboard append [file normalize [file join $worktree $file]]
+    copytext [file normalize [file join $worktree $file]]
 }
 
 # Open the working tree copy of $file (relative to the top of the
@@ -10277,8 +10276,7 @@ proc copyreference {} {
     }
     set reference [safe_exec [concat $cmd $rowmenuid]]
 
-    clipboard clear
-    clipboard append $reference
+    copytext $reference
 }
 
 proc writecommit {} {
@@ -10939,6 +10937,25 @@ proc readresetstat {fd} {
         doshowlocalchanges
     }
     return 0
+}
+
+# Put text on the clipboard and in the PRIMARY selection, so that
+# whichever one a paste (or a VM clipboard bridge) reads, it gets text
+# rather than a commit ID selected earlier.
+proc copytext {text} {
+    global copiedtext
+
+    set copiedtext $text
+    clipboard clear
+    clipboard append $text
+    selection handle -selection PRIMARY . getcopiedtext
+    selection own -selection PRIMARY .
+}
+
+proc getcopiedtext {offset maxchars} {
+    global copiedtext
+
+    return [string range $copiedtext $offset [expr {$offset + $maxchars - 1}]]
 }
 
 # context menu for a head
